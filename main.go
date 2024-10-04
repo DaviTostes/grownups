@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/TwiN/go-color"
 	"github.com/gorilla/websocket"
 	"github.com/spf13/cobra"
 )
@@ -38,7 +39,7 @@ func run(username string) {
 		fmt.Println("Usage: grownups <username>")
 	}
 
-  fmt.Println("Connecting to server... it can take a while :P")
+	fmt.Println("Connecting to server... it can take a while :P")
 
 	dialer := websocket.DefaultDialer
 	dialer.HandshakeTimeout = 120 * time.Second
@@ -57,7 +58,7 @@ func run(username string) {
 		return
 	}
 
-	fmt.Println("Connect as " + username)
+	fmt.Println(color.InGreen("Connect as " + username))
 
 	scanner := bufio.NewScanner(os.Stdin)
 
@@ -78,12 +79,12 @@ func readMessages(conn *websocket.Conn) {
 
 		fmt.Print("\r\033[K")
 		fmt.Println(string(msg))
-		fmt.Print("You: ")
+		fmt.Print(color.InGreen("You: "))
 	}
 }
 
 func sendMessage(scanner *bufio.Scanner, conn *websocket.Conn) {
-	fmt.Print("You: ")
+	fmt.Print(color.InGreen("You: "))
 	if scanner.Scan() {
 		text := scanner.Text()
 		if err := conn.WriteMessage(websocket.TextMessage, []byte(text)); err != nil {
