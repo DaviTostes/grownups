@@ -34,6 +34,7 @@ func main() {
 
 func run(username string) {
 	url := "wss://grownups-server.onrender.com/ws"
+	// url := "ws://localhost:8080/ws"
 
 	if username == "" {
 		fmt.Println("Usage: grownups <username>")
@@ -57,8 +58,6 @@ func run(username string) {
 		fmt.Println("Error sending username:", err)
 		return
 	}
-
-	fmt.Println(color.InGreen("Connect as " + username))
 
 	scanner := bufio.NewScanner(os.Stdin)
 
