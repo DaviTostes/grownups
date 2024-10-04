@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/spf13/cobra"
@@ -37,9 +38,12 @@ func run(username string) {
 		fmt.Println("Usage: grownups <username>")
 	}
 
-	fmt.Println("Connecting to server...")
+  fmt.Println("Connecting to server... it can take a while :P")
 
-	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
+	dialer := websocket.DefaultDialer
+	dialer.HandshakeTimeout = 120 * time.Second
+
+	conn, _, err := dialer.Dial(url, nil)
 	if err != nil {
 		fmt.Println("Error connecting to server:", err)
 		return
