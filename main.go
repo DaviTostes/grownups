@@ -3,6 +3,9 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -11,20 +14,36 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func main() {
-	var rootCmd = &cobra.Command{
-		Use:   "grownups",
-		Short: "A live chat private for everyone",
-		Long:  "Dont tread on me",
-		Run: func(cmd *cobra.Command, args []string) {
+var  url = "grownups-server.onrender.com"
+// var url = "localhost:8080"
+
+var rootCmd = &cobra.Command{
+	Use:   "grownups",
+	Short: "A live chat private for everyone",
+	Long:  "Dont tread on me",
+	Run: func(cmd *cobra.Command, args []string) {
+		list, err := cmd.Flags().GetBool("list")
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if list {
+			runList()
+		} else {
 			if len(args) < 1 || args[0] == "" {
 				fmt.Println("Usage: grownups <username>")
 				os.Exit(1)
 			}
 
 			run(args[0])
-		},
-	}
+		}
+
+	},
+}
+
+func main() {
+	rootCmd.Flags().BoolP("list", "l", false, "List the users logged in")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
@@ -32,10 +51,22 @@ func main() {
 	}
 }
 
-func run(username string) {
-	url := "wss://grownups-server.onrender.com/ws"
-	// url := "ws://localhost:8080/ws"
+func runList() {
+	response, err := http.Get("https://" + url + "/users-count")
+	if err != nil {
+		log.Fatal("Error making get request: $v", err)
+	}
+	defer response.Body.Close()
 
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		log.Fatal("Error reading response body: $v", err)
+	}
+
+	fmt.Println("Number of active users: " + string(body))
+}
+
+func run(username string) {
 	if username == "" {
 		fmt.Println("Usage: grownups <username>")
 	}
@@ -45,7 +76,7 @@ func run(username string) {
 	dialer := websocket.DefaultDialer
 	dialer.HandshakeTimeout = 120 * time.Second
 
-	conn, _, err := dialer.Dial(url, nil)
+	conn, _, err := dialer.Dial("wss://"+url+"/ws", nil)
 	if err != nil {
 		fmt.Println("Error connecting to server:", err)
 		return
