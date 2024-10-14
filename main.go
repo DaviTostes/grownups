@@ -3,9 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io"
-	"log"
-	"net/http"
 	"os"
 	"time"
 
@@ -22,48 +19,21 @@ var rootCmd = &cobra.Command{
 	Short: "A live chat private for everyone",
 	Long:  "Dont tread on me",
 	Run: func(cmd *cobra.Command, args []string) {
-		list, err := cmd.Flags().GetBool("list")
-
-		if err != nil {
-			log.Fatal(err)
+		if len(args) < 1 || args[0] == "" {
+			fmt.Println("Usage: grownups <username>")
+			os.Exit(1)
 		}
 
-		if list {
-			runList()
-		} else {
-			if len(args) < 1 || args[0] == "" {
-				fmt.Println("Usage: grownups <username>")
-				os.Exit(1)
-			}
-
-			run(args[0])
-		}
+		run(args[0])
 
 	},
 }
 
 func main() {
-	rootCmd.Flags().BoolP("list", "l", false, "List the users logged in")
-
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-}
-
-func runList() {
-	response, err := http.Get("https://" + url + "/users-count")
-	if err != nil {
-		log.Fatal("Error making get request: $v", err)
-	}
-	defer response.Body.Close()
-
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		log.Fatal("Error reading response body: $v", err)
-	}
-
-	fmt.Println("Number of active users: " + string(body))
 }
 
 func run(username string) {
@@ -76,7 +46,7 @@ func run(username string) {
 	dialer := websocket.DefaultDialer
 	dialer.HandshakeTimeout = 120 * time.Second
 
-	conn, _, err := dialer.Dial("wss://"+url+"/ws", nil)
+	conn, _, err := dialer.Dial("ws://"+url+"/ws", nil)
 	if err != nil {
 		fmt.Println("Error connecting to server:", err)
 		return
@@ -90,13 +60,18 @@ func run(username string) {
 		return
 	}
 
-	scanner := bufio.NewScanner(os.Stdin)
-
 	go readMessages(conn)
 
+	scanner := bufio.NewScanner(os.Stdin)
+
 	for {
-		sendMessage(scanner, conn)
+		leaveChat := sendMessage(scanner, conn)
+		if leaveChat {
+			break
+		}
 	}
+
+  os.Exit(0)
 }
 
 func readMessages(conn *websocket.Conn) {
@@ -113,13 +88,20 @@ func readMessages(conn *websocket.Conn) {
 	}
 }
 
-func sendMessage(scanner *bufio.Scanner, conn *websocket.Conn) {
+func sendMessage(scanner *bufio.Scanner, conn *websocket.Conn) bool {
 	fmt.Print(color.InGreen("You: "))
 	if scanner.Scan() {
 		text := scanner.Text()
+
+		if text == "/q" {
+			return true
+		}
+
 		if err := conn.WriteMessage(websocket.TextMessage, []byte(text)); err != nil {
 			fmt.Println("Error sending message:", err)
-			return
+			return false
 		}
 	}
+
+	return false
 }
